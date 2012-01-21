@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import math
+import re
+import time
 
+from .config import VERBOSITY
 from .data_types import (BooleanValue, NumberValue, ListValue, ColorValue,
                          QuotedStringValue, StringValue)
 from .regexes import _variable_re
 from .units import _units_weights, _conv_type
 from .utils import to_str
+
+
+profiling = {}
 
 
 FILEID = 0
@@ -37,6 +43,58 @@ RULE_VARS = {
     'FINAL': FINAL,
     'MEDIA': MEDIA,
 }
+
+
+def spawn_rule(rule=None, **kwargs):
+    if rule is None:
+        rule = [None] * len(RULE_VARS)
+        rule[DEPS] = set()
+        rule[SELECTORS] = ''
+        rule[PROPERTIES] = []
+        rule[PATH] = './'
+        rule[INDEX] = {0: '<unknown>'}
+        rule[LINENO] = 0
+        rule[FINAL] = False
+    else:
+        rule = list(rule)
+    for k, v in kwargs.items():
+        rule[RULE_VARS[k.upper()]] = v
+    return rule
+
+
+def print_timing(level=0):
+    def _print_timing(func):
+        if VERBOSITY:
+            def wrapper(*arg):
+                if VERBOSITY >= level:
+                    t1 = time.time()
+                    res = func(*arg)
+                    t2 = time.time()
+                    profiling.setdefault(func.func_name, 0)
+                    profiling[func.func_name] += (t2 - t1)
+                    return res
+                else:
+                    return func(*arg)
+            return wrapper
+        else:
+            return func
+    return _print_timing
+
+
+################################################################################
+
+_safe_strings = {
+    '^doubleslash^': '//',
+    '^bigcopen^': '/*',
+    '^bigcclose^': '*/',
+    '^doubledot^': ':',
+    '^semicolon^': ';',
+    '^curlybracketopen^': '{',
+    '^curlybracketclosed^': '}',
+}
+_reverse_safe_strings = dict((v, k) for k, v in _safe_strings.items())
+_safe_strings_re = re.compile('|'.join(map(re.escape, _safe_strings)))
+_reverse_safe_strings_re = re.compile('|'.join(map(re.escape, _reverse_safe_strings)))
 
 
 ################################################################################
