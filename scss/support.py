@@ -5,10 +5,7 @@ import re
 import time
 
 from .config import _cfg
-from .data_types import (BooleanValue, NumberValue, ListValue, ColorValue,
-                         QuotedStringValue, StringValue)
-from .regexes import _variable_re
-from .units import _units_weights, _conv_type
+from .data_types import BooleanValue, NumberValue, ListValue, StringValue
 from .utils import to_str
 
 
@@ -331,50 +328,6 @@ def _first_value_of(*lst):
     return ret.__class__(ret)
 
 
-def _nth(lst, n=1):
-    """
-    Return the Nth item in the string
-    """
-    n = StringValue(n).value
-    lst = ListValue(lst).value
-    try:
-        n = int(float(n)) - 1
-        n = n % len(lst)
-    except:
-        if n.lower() == 'first':
-            n = 0
-        elif n.lower() == 'last':
-            n = -1
-    try:
-        ret = lst[n]
-    except KeyError:
-        lst = [v for k, v in sorted(lst.items()) if isinstance(k, int)]
-        try:
-            ret = lst[n]
-        except:
-            ret = ''
-    return ret.__class__(ret)
-
-
-def _join(lst1, lst2, separator=None):
-    ret = ListValue(lst1)
-    lst2 = ListValue(lst2).value
-    lst_len = len(ret.value)
-    ret.value.update((k + lst_len if isinstance(k, int) else k, v) for k, v in lst2.items())
-    if separator is not None:
-        separator = StringValue(separator).value
-        if separator:
-            ret.value['_'] = separator
-    return ret
-
-
-def _length(*lst):
-    if len(lst) == 1 and isinstance(lst[0], (list, tuple, ListValue)):
-        lst = ListValue(lst[0]).values()
-    lst = ListValue(lst)
-    return NumberValue(len(lst))
-
-
 def _max(*lst):
     if len(lst) == 1 and isinstance(lst[0], (list, tuple, ListValue)):
         lst = ListValue(lst[0]).values()
@@ -475,55 +428,5 @@ def __o(*args):
 ################################################################################
 
 
-def _percentage(value):
-    value = NumberValue(value)
-    value.units = {'%': _units_weights.get('%', 1), '_': '%'}
-    return value
-
-
-def _unitless(value):
-    value = NumberValue(value)
-    return BooleanValue(not bool(value.unit))
-
-
-def _unquote(*args):
-    return StringValue(' '.join([StringValue(s).value for s in args]))
-
-
-def _quote(*args):
-    return QuotedStringValue(' '.join([StringValue(s).value for s in args]))
-
-
 def _pi():
     return NumberValue(math.pi)
-
-
-def _comparable(number1, number2):
-    n1, n2 = NumberValue(number1), NumberValue(number2)
-    type1 = _conv_type.get(n1.unit)
-    type2 = _conv_type.get(n2.unit)
-    return BooleanValue(type1 == type2)
-
-
-def _type_of(obj):  # -> bool, number, string, color, list
-    if isinstance(obj, BooleanValue):
-        return StringValue('bool')
-    if isinstance(obj, NumberValue):
-        return StringValue('number')
-    if isinstance(obj, ColorValue):
-        return StringValue('color')
-    if isinstance(obj, ListValue):
-        return StringValue('list')
-    if isinstance(obj, basestring) and _variable_re.match(obj):
-        return StringValue('undefined')
-    return StringValue('string')
-
-
-def _if(condition, if_true, if_false=''):
-    condition = bool(False if not condition or isinstance(condition, basestring) and (condition in ('0', 'false', 'undefined') or _variable_re.match(condition)) else condition)
-    return if_true.__class__(if_true) if condition else if_true.__class__(if_false)
-
-
-def _unit(number):  # -> px, em, cm, etc.
-    unit = NumberValue(number).unit
-    return StringValue(unit)

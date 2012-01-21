@@ -20,7 +20,6 @@ except ImportError:
 
 import os
 import base64
-import colorsys
 import datetime
 import glob
 import hashlib
@@ -35,52 +34,24 @@ from ..data_types import (Value, NumberValue, ListValue, ColorValue,
                          QuotedStringValue, StringValue)
 from ..support import (__compass_list, __compass_slice, __compass_space_list,
                        __css2, __moz, __ms, __o, __owg, __pie, __svg, __webkit,
-                       _append, _append_selector, _blank, _compact, _comparable,
+                       _append, _append_selector, _blank, _compact,
                        _elements_of_type, _enumerate, _first_value_of, _headers,
-                       _if, _join, _length, _max, _min, _nest, _nth,
-                       _percentage, _pi, _prefix, _prefixed, _quote, _range,
-                       _reject, _type_of, _unit, _unitless, _unquote)
+                       _max, _min, _nest,
+                       _pi, _prefix, _prefixed, _range,
+                       _reject)
 from ..units import _units, _units_weights
 from ..utils import escape, split_params, to_float, to_str
+from .sass import (_color_type, __hsl_op, _opacify, _transparentize,
+                   _grayscale, _adjust_hue, _rgba2, _nth, _length, _unquote,
+                   _if, func_mapping)
 
 
 ################################################################################
 # Sass/Compass Library Functions:
 
 
-def _rgb(r, g, b, type='rgb'):
-    return _rgba(r, g, b, 1.0, type)
-
-
-def _rgba(r, g, b, a, type='rgba'):
-    c = NumberValue(r), NumberValue(g), NumberValue(b), NumberValue(a)
-
-    col = [c[i].value * 255.0 if (c[i].unit == '%' or c[i].value > 0 and c[i].value <= 1) else
-            0.0 if c[i].value < 0 else
-            255.0 if c[i].value > 255 else
-            c[i].value
-            for i in range(3)
-          ]
-    col += [0.0 if c[3].value < 0 else 1.0 if c[3].value > 1 else c[3].value]
-    col += [type]
-    return ColorValue(col)
-
-
-def _color_type(color, a, type):
-    color = ColorValue(color).value
-    a = NumberValue(a).value if a is not None else color[3]
-    col = list(color[:3])
-    col += [0.0 if a < 0 else 1.0 if a > 1 else a]
-    col += [type]
-    return ColorValue(col)
-
-
 def _rgb2(color):
     return _color_type(color, 1.0, 'rgb')
-
-
-def _rgba2(color, a=None):
-    return _color_type(color, a, 'rgba')
 
 
 def _hsl2(color):
@@ -96,117 +67,6 @@ def _ie_hex_str(color):
     return StringValue('#%02X%02X%02X%02X' % (round(c[3] * 255), round(c[0]), round(c[1]), round(c[2])))
 
 
-def _hsl(h, s, l, type='hsl'):
-    return _hsla(h, s, l, 1.0, type)
-
-
-def _hsla(h, s, l, a, type='hsla'):
-    c = NumberValue(h), NumberValue(s), NumberValue(l), NumberValue(a)
-    col = [c[0] if (c[0].unit == '%' and c[0].value > 0 and c[0].value <= 1) else (c[0].value % 360.0) / 360.0]
-    col += [0.0 if cl <= 0 else 1.0 if cl >= 1.0 else cl
-            for cl in [
-                c[i].value if (c[i].unit == '%' or c[i].value > 0 and c[i].value <= 1) else
-                c[i].value / 100.0
-                for i in range(1, 4)
-              ]
-           ]
-    col += [type]
-    c = [c * 255.0 for c in colorsys.hls_to_rgb(col[0], 0.999999 if col[2] == 1 else col[2], 0.999999 if col[1] == 1 else col[1])] + [col[3], type]
-    col = ColorValue(c)
-    return col
-
-
-def __rgba_op(op, color, r, g, b, a):
-    color = ColorValue(color)
-    c = color.value
-    a = [
-        None if r is None else NumberValue(r).value,
-        None if g is None else NumberValue(g).value,
-        None if b is None else NumberValue(b).value,
-        None if a is None else NumberValue(a).value,
-    ]
-    # Do the additions:
-    c = [op(c[i], a[i]) if op is not None and a[i] is not None else a[i] if a[i] is not None else c[i] for i in range(4)]
-    # Validations:
-    r = 255.0, 255.0, 255.0, 1.0
-    c = [0.0 if c[i] < 0 else r[i] if c[i] > r[i] else c[i] for i in range(4)]
-    color.value = tuple(c)
-    return color
-
-
-def _opacify(color, amount):
-    return __rgba_op(operator.__add__, color, 0, 0, 0, amount)
-
-
-def _transparentize(color, amount):
-    return __rgba_op(operator.__sub__, color, 0, 0, 0, amount)
-
-
-def __hsl_op(op, color, h, s, l):
-    color = ColorValue(color)
-    c = color.value
-    h = None if h is None else NumberValue(h)
-    s = None if s is None else NumberValue(s)
-    l = None if l is None else NumberValue(l)
-    a = [
-        None if h is None else h.value / 360.0,
-        None if s is None else s.value / 100.0 if s.unit != '%' and s.value >= 1 else s.value,
-        None if l is None else l.value / 100.0 if l.unit != '%' and l.value >= 1 else l.value,
-    ]
-    # Convert to HSL:
-    h, l, s = list(colorsys.rgb_to_hls(c[0] / 255.0, c[1] / 255.0, c[2] / 255.0))
-    c = h, s, l
-    # Do the additions:
-    c = [0.0 if c[i] < 0 else 1.0 if c[i] > 1 else op(c[i], a[i]) if op is not None and a[i] is not None else a[i] if a[i] is not None else c[i] for i in range(3)]
-    # Validations:
-    c[0] = (c[0] * 360.0) % 360
-    r = 360.0, 1.0, 1.0
-    c = [0.0 if c[i] < 0 else r[i] if c[i] > r[i] else c[i] for i in range(3)]
-    # Convert back to RGB:
-    c = colorsys.hls_to_rgb(c[0] / 360.0, 0.999999 if c[2] == 1 else c[2], 0.999999 if c[1] == 1 else c[1])
-    color.value = (c[0] * 255.0, c[1] * 255.0, c[2] * 255.0, color.value[3])
-    return color
-
-
-def _lighten(color, amount):
-    return __hsl_op(operator.__add__, color, 0, 0, amount)
-
-
-def _darken(color, amount):
-    return __hsl_op(operator.__sub__, color, 0, 0, amount)
-
-
-def _saturate(color, amount):
-    return __hsl_op(operator.__add__, color, 0, amount, 0)
-
-
-def _desaturate(color, amount):
-    return __hsl_op(operator.__sub__, color, 0, amount, 0)
-
-
-def _grayscale(color):
-    return __hsl_op(operator.__sub__, color, 0, 100.0, 0)
-
-
-def _adjust_hue(color, degrees):
-    return __hsl_op(operator.__add__, color, degrees, 0, 0)
-
-
-def _complement(color):
-    return __hsl_op(operator.__add__, color, 180.0, 0, 0)
-
-
-def _invert(color):
-    """
-    Returns the inverse (negative) of a color.
-    The red, green, and blue values are inverted, while the opacity is left alone.
-    """
-    col = ColorValue(color)
-    c = col.value
-    c[0] = 255.0 - c[0]
-    c[1] = 255.0 - c[1]
-    c[2] = 255.0 - c[2]
-    return col
 
 
 def _adjust_lightness(color, amount):
@@ -223,137 +83,6 @@ def _scale_lightness(color, amount):
 
 def _scale_saturation(color, amount):
     return __hsl_op(operator.__mul__, color, 0, amount, 0)
-
-
-def _asc_color(op, color, saturation=None, lightness=None, red=None, green=None, blue=None, alpha=None):
-    if lightness or saturation:
-        color = __hsl_op(op, color, 0, saturation, lightness)
-    if red or green or blue or alpha:
-        color = __rgba_op(op, color, red, green, blue, alpha)
-    return color
-
-
-def _adjust_color(color, saturation=None, lightness=None, red=None, green=None, blue=None, alpha=None):
-    return _asc_color(operator.__add__, color, saturation, lightness, red, green, blue, alpha)
-
-
-def _scale_color(color, saturation=None, lightness=None, red=None, green=None, blue=None, alpha=None):
-    return _asc_color(operator.__mul__, color, saturation, lightness, red, green, blue, alpha)
-
-
-def _change_color(color, saturation=None, lightness=None, red=None, green=None, blue=None, alpha=None):
-    return _asc_color(None, color, saturation, lightness, red, green, blue, alpha)
-
-
-def _mix(color1, color2, weight=None):
-    """
-    Mixes together two colors. Specifically, takes the average of each of the
-    RGB components, optionally weighted by the given percentage.
-    The opacity of the colors is also considered when weighting the components.
-
-    Specifically, takes the average of each of the RGB components,
-    optionally weighted by the given percentage.
-    The opacity of the colors is also considered when weighting the components.
-
-    The weight specifies the amount of the first color that should be included
-    in the returned color.
-    50%, means that half the first color
-        and half the second color should be used.
-    25% means that a quarter of the first color
-        and three quarters of the second color should be used.
-
-    For example:
-
-        mix(#f00, #00f) => #7f007f
-        mix(#f00, #00f, 25%) => #3f00bf
-        mix(rgba(255, 0, 0, 0.5), #00f) => rgba(63, 0, 191, 0.75)
-
-    """
-    # This algorithm factors in both the user-provided weight
-    # and the difference between the alpha values of the two colors
-    # to decide how to perform the weighted average of the two RGB values.
-    #
-    # It works by first normalizing both parameters to be within [-1, 1],
-    # where 1 indicates "only use color1", -1 indicates "only use color 0",
-    # and all values in between indicated a proportionately weighted average.
-    #
-    # Once we have the normalized variables w and a,
-    # we apply the formula (w + a)/(1 + w*a)
-    # to get the combined weight (in [-1, 1]) of color1.
-    # This formula has two especially nice properties:
-    #
-    #   * When either w or a are -1 or 1, the combined weight is also that number
-    #     (cases where w * a == -1 are undefined, and handled as a special case).
-    #
-    #   * When a is 0, the combined weight is w, and vice versa
-    #
-    # Finally, the weight of color1 is renormalized to be within [0, 1]
-    # and the weight of color2 is given by 1 minus the weight of color1.
-    #
-    # Algorithm from the Sass project: http://sass-lang.com/
-
-    c1 = ColorValue(color1).value
-    c2 = ColorValue(color2).value
-    p = NumberValue(weight).value if weight is not None else 0.5
-    p = 0.0 if p < 0 else 1.0 if p > 1 else p
-
-    w = p * 2 - 1
-    a = c1[3] - c2[3]
-
-    w1 = ((w if (w * a == -1) else (w + a) / (1 + w * a)) + 1) / 2.0
-
-    w2 = 1 - w1
-    q = [w1, w1, w1, p]
-    r = [w2, w2, w2, 1 - p]
-
-    color = ColorValue(None).merge(c1).merge(c2)
-    color.value = [c1[i] * q[i] + c2[i] * r[i] for i in range(4)]
-
-    return color
-
-
-def _red(color):
-    c = ColorValue(color).value
-    return NumberValue(c[0])
-
-
-def _green(color):
-    c = ColorValue(color).value
-    return NumberValue(c[1])
-
-
-def _blue(color):
-    c = ColorValue(color).value
-    return NumberValue(c[2])
-
-
-def _alpha(color):
-    c = ColorValue(color).value
-    return NumberValue(c[3])
-
-
-def _hue(color):
-    c = ColorValue(color).value
-    h, l, s = colorsys.rgb_to_hls(c[0] / 255.0, c[1] / 255.0, c[2] / 255.0)
-    ret = NumberValue(h * 360.0)
-    ret.units = {'deg': _units_weights.get('deg', 1), '_': 'deg'}
-    return ret
-
-
-def _saturation(color):
-    c = ColorValue(color).value
-    h, l, s = colorsys.rgb_to_hls(c[0] / 255.0, c[1] / 255.0, c[2] / 255.0)
-    ret = NumberValue(s)
-    ret.units = {'%': _units_weights.get('%', 1), '_': '%'}
-    return ret
-
-
-def _lightness(color):
-    c = ColorValue(color).value
-    h, l, s = colorsys.rgb_to_hls(c[0] / 255.0, c[1] / 255.0, c[2] / 255.0)
-    ret = NumberValue(l)
-    ret.units = {'%': _units_weights.get('%', 1), '_': '%'}
-    return ret
 
 
 def __color_stops(percentages, *args):
@@ -1498,51 +1227,22 @@ fnct = {
     'radial-svg-gradient:n': _radial_svg_gradient,
     'linear-svg-gradient:n': _linear_svg_gradient,
 
-    'opacify:2': _opacify,
-    'fadein:2': _opacify,
-    'fade-in:2': _opacify,
-    'transparentize:2': _transparentize,
-    'fadeout:2': _transparentize,
-    'fade-out:2': _transparentize,
-    'lighten:2': _lighten,
-    'darken:2': _darken,
-    'saturate:2': _saturate,
-    'desaturate:2': _desaturate,
-    'grayscale:1': _grayscale,
-    'greyscale:1': _grayscale,
-    'adjust-hue:2': _adjust_hue,
+    'fadein:2': _opacify, #spelling
+    'fadeout:2': _transparentize, #spelling
+    'greyscale:1': _grayscale, #spelling
+
     'adjust-lightness:2': _adjust_lightness,
     'adjust-saturation:2': _adjust_saturation,
     'scale-lightness:2': _scale_lightness,
     'scale-saturation:2': _scale_saturation,
-    'adjust-color:n': _adjust_color,
-    'scale-color:n': _scale_color,
-    'change-color:n': _change_color,
     'spin:2': _adjust_hue,
-    'complement:1': _complement,
-    'invert:1': _invert,
-    'mix:2': _mix,
-    'mix:3': _mix,
-    'hsl:3': _hsl,
     'hsl:1': _hsl2,
     'hsla:1': _hsla2,
     'hsla:2': _hsla2,
-    'hsla:4': _hsla,
-    'rgb:3': _rgb,
     'rgb:1': _rgb2,
     'rgba:1': _rgba2,
-    'rgba:2': _rgba2,
-    'rgba:4': _rgba,
     'ie-hex-str:1': _ie_hex_str,
 
-    'red:1': _red,
-    'green:1': _green,
-    'blue:1': _blue,
-    'alpha:1': _alpha,
-    'opacity:1': _alpha,
-    'hue:1': _hue,
-    'saturation:1': _saturation,
-    'lightness:1': _lightness,
 
     'prefixed:n': _prefixed,
     'prefix:n': _prefix,
@@ -1561,14 +1261,10 @@ fnct = {
     'compact:n': _compact,
     'reject:n': _reject,
     '-compass-slice:3': __compass_slice,
-    'nth:2': _nth,
     'max:n': _max,
     'min:n': _min,
     '-compass-nth:2': _nth,
     'first-value-of:n': _first_value_of,
-    'join:2': _join,
-    'join:3': _join,
-    'length:n': _length,
     '-compass-list-size:n': _length,
     'append:2': _append,
     'append:3': _append,
@@ -1586,16 +1282,8 @@ fnct = {
     'range:1': _range,
     'range:2': _range,
 
-    'percentage:1': _percentage,
-    'unitless:1': _unitless,
-    'unit:1': _unit,
     'if:2': _if,
-    'if:3': _if,
-    'type-of:1': _type_of,
-    'comparable:2': _comparable,
     'elements-of-type:1': _elements_of_type,
-    'quote:n': _quote,
-    'unquote:n': _unquote,
     'escape:1': _unquote,
     'e:1': _unquote,
 
@@ -1603,11 +1291,10 @@ fnct = {
     'cos:1': Value._wrap(math.cos),
     'tan:1': Value._wrap(math.tan),
     'abs:1': Value._wrap(abs),
-    'round:1': Value._wrap(round),
-    'ceil:1': Value._wrap(math.ceil),
-    'floor:1': Value._wrap(math.floor),
     'pi:0': _pi,
 }
 
 for u in _units:
     fnct[u + ':2'] = _convert_to
+
+fnct.update(func_mapping)
