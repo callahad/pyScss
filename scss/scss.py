@@ -337,14 +337,13 @@ class Scss(object):
                     name = self.calculate(name, rule[CONTEXT], rule[OPTIONS], rule)
                     log.info(repr(name))
                 elif code == '@debug':
-                    global DEBUG
                     name = name.strip()
                     if name.lower() in ('1', 'true', 't', 'yes', 'y', 'on'):
                         name = 1
                     elif name.lower() in ('0', 'false', 'f', 'no', 'n', 'off', 'undefined'):
                         name = 0
-                    DEBUG = name
-                    log.info("Debug mode is %s", 'On' if DEBUG else 'Off')
+                    _cfg['DEBUG'] = name
+                    log.info("Debug mode is %s", 'On' if _cfg['DEBUG'] else 'Off')
                 elif code == '@option':
                     self._settle_options(rule, p_selectors, p_parents, p_children, scope, media, c_lineno, c_property, c_codestr, code, name)
                 elif code == '@content':

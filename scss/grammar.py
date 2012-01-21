@@ -2,7 +2,7 @@
 
 import re
 
-from .config import DEBUG, log
+from .config import _cfg, log
 from .data_types import ParserValue, BooleanValue, NumberValue, ListValue, ColorValue, QuotedStringValue, StringValue
 from .functions import fnct
 from .parser import CachedScanner, Parser
@@ -80,11 +80,11 @@ def eval_expr(expr, rule, raw=False):
             #print >>sys.stderr, '==',val,'=='
             return val
     except SyntaxError:
-        if DEBUG:
+        if _cfg['DEBUG']:
             raise
     except Exception as e:
         log.error("Exception raised: %s in `%s' (%s)", e, expr, rule[INDEX][rule[LINENO]])
-        if DEBUG:
+        if _cfg['DEBUG']:
             raise
 
 

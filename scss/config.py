@@ -8,15 +8,15 @@ from .scss_meta import (BUILD_INFO, PROJECT, VERSION, REVISION, URL, AUTHOR,
 
 
 # Variables read by submodules, but never modified.
-DEBUG = 0
 PROJECT_ROOT = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 STATIC_URL = '/static/'
 ASSETS_URL = '/static/assets/'
 
-# Variables modified by the .cli submodule.
+# Variables modified by the .cli or .scss submodules.
 _cfg = {'LOAD_PATHS': os.path.join(PROJECT_ROOT, 'sass/frameworks/'),
         'STATIC_ROOT': os.path.join(PROJECT_ROOT, 'static/'),
         'ASSETS_ROOT': os.path.join(PROJECT_ROOT, 'static/assets/'),
+        'DEBUG': 0,
         'VERBOSITY': 1}
 
 
