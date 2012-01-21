@@ -100,8 +100,7 @@ def run_setup(with_binary):
             "Topic :: Text Processing :: Markup",
             "Topic :: Software Development :: Libraries :: Python Modules"
         ],
-        packages=['scss'],
-        package_data={'scss': ['tests.rst']},
+        packages=['scss', 'scss.functions'],
         cmdclass={'build_ext': ve_build_ext},
         features=features,
         entry_points="""

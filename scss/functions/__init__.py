@@ -30,18 +30,18 @@ import operator
 import random
 import time
 
-from .config import ASSETS_URL, STATIC_URL, _cfg, log
-from .data_types import (Value, NumberValue, ListValue, ColorValue,
+from ..config import ASSETS_URL, STATIC_URL, _cfg, log
+from ..data_types import (Value, NumberValue, ListValue, ColorValue,
                          QuotedStringValue, StringValue)
-from .support import (__compass_list, __compass_slice, __compass_space_list,
-                      __css2, __moz, __ms, __o, __owg, __pie, __svg, __webkit,
-                      _append, _append_selector, _blank, _compact, _comparable,
-                      _elements_of_type, _enumerate, _first_value_of, _headers,
-                      _if, _join, _length, _max, _min, _nest, _nth,
-                      _percentage, _pi, _prefix, _prefixed, _quote, _range,
-                      _reject, _type_of, _unit, _unitless, _unquote)
-from .units import _units, _units_weights
-from .utils import escape, split_params, to_float, to_str
+from ..support import (__compass_list, __compass_slice, __compass_space_list,
+                       __css2, __moz, __ms, __o, __owg, __pie, __svg, __webkit,
+                       _append, _append_selector, _blank, _compact, _comparable,
+                       _elements_of_type, _enumerate, _first_value_of, _headers,
+                       _if, _join, _length, _max, _min, _nest, _nth,
+                       _percentage, _pi, _prefix, _prefixed, _quote, _range,
+                       _reject, _type_of, _unit, _unitless, _unquote)
+from ..units import _units, _units_weights
+from ..utils import escape, split_params, to_float, to_str
 
 
 ################################################################################
