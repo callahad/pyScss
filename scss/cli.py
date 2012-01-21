@@ -70,7 +70,7 @@ def run_cli():
     if options.static_root is not None:
         _cfg['STATIC_ROOT'] = options.static_root
     if options.assets_root is not None:
-        _cft['ASSETS_ROOT'] = options.assets_root
+        _cfg['ASSETS_ROOT'] = options.assets_root
     if options.load_paths is not None:
         # TODO: Convert global LOAD_PATHS to a list. Use it directly.
         # Doing the above will break backwards compatibility!
