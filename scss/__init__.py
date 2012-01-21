@@ -46,6 +46,4 @@ __license__ = LICENSE
 
 if __name__ == "__main__":
     from .cli import run_cli
-    import logging
-    logging.basicConfig(format="%(levelname)s: %(message)s")
     run_cli()

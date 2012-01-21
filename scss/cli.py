@@ -1,21 +1,24 @@
 # -*- coding: utf-8 -*-
 
-import deque
+from collections import deque
+import logging
 import os
 import re
 import sys
 import time
 
-from .config import LOAD_PATHS
+from .config import LOAD_PATHS, VERBOSITY, STATIC_ROOT, ASSETS_ROOT
 from .regexes import _prop_split_re
 from .scss import Scss
 from .scss_meta import BUILD_INFO
-from .spport import spawn_rule, profiling
+from .support import spawn_rule, profiling
 from .utils import to_str
 
 
 def run_cli():
     from optparse import OptionGroup, OptionParser, SUPPRESS_HELP
+
+    logging.basicConfig(format="%(levelname)s: %(message)s")
 
     parser = OptionParser(usage="Usage: %prog [options] [file]",
                           description="Converts Scss files to CSS.",
@@ -109,7 +112,7 @@ def run_cli():
         except ImportError:
             pass
 
-        css = Scss()
+        css = Scss(load_paths=LOAD_PATHS)
         context = css.scss_vars
         options = css.scss_opts
         rule = spawn_rule(context=context, options=options)
@@ -231,10 +234,9 @@ def run_cli():
         class ScssEventHandler(PatternMatchingEventHandler):
             def __init__(self, *args, **kwargs):
                 super(ScssEventHandler, self).__init__(*args, **kwargs)
-                self.css = Scss(scss_opts={
-                    'compress': options.compress,
-                    'debug_info': options.debug_info,
-                })
+                self.css = Scss(scss_opts={'compress': options.compress,
+                                           'debug_info': options.debug_info},
+                                load_paths=LOAD_PATHS)
                 self.output = options.output
                 self.suffix = options.suffix
 
@@ -300,10 +302,9 @@ def run_cli():
         else:
             output = sys.stdout
 
-        css = Scss(scss_opts={
-            'compress': options.compress,
-            'debug_info': options.debug_info,
-        })
+        css = Scss(scss_opts={'compress': options.compress,
+                              'debug_info': options.debug_info},
+                   load_paths=LOAD_PATHS)
         if args:
             for path in args:
                 finput = open(path, 'rt')

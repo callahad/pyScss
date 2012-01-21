@@ -32,10 +32,12 @@ class Scss(object):
     # configuration:
     construct = 'self'
 
-    def __init__(self, scss_vars=None, scss_opts=None, scss_files=None):
+    def __init__(self, scss_vars=None, scss_opts=None, scss_files=None,
+                 load_paths=None):
         self._scss_vars = scss_vars
         self._scss_opts = scss_opts
         self._scss_files = scss_files
+        self._load_paths = load_paths if load_paths is not None else LOAD_PATHS
         self.reset()
 
     def clean(self):
@@ -549,10 +551,10 @@ class Scss(object):
 
                         # TODO: Convert global LOAD_PATHS to a list. Use it directly.
                         # Doing the above will break backwards compatibility!
-                        if hasattr(LOAD_PATHS, 'split'):
-                            load_path_list = LOAD_PATHS.split(',') # Old style
+                        if hasattr(self._load_paths, 'split'):
+                            load_path_list = self._load_paths.split(',') # Old style
                         else:
-                            load_path_list = LOAD_PATHS # New style
+                            load_path_list = self._load_paths # New style
 
                         for path in [ './' ] + load_path_list:
                             for basepath in [ './', os.path.dirname(rule[PATH]) ]:
