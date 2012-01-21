@@ -414,9 +414,9 @@ def __hsl_op(op, color, h, s, l):
 
 # PyScss Setup
 
-func_mapping = {}
+sass_functions = {}
 
-func_mapping.update({
+sass_functions.update({
     'rgb:3': _rgb,
     'rgba:4': _rgba,
     'rgba:2': _rgba2,
@@ -427,7 +427,7 @@ func_mapping.update({
     'mix:3': _mix,
 })
 
-func_mapping.update({
+sass_functions.update({
     'hsl:3': _hsl,
     'hsla:4': _hsla,
     'hue:1': _hue,
@@ -443,7 +443,7 @@ func_mapping.update({
     'invert:1': _invert,
 })
 
-func_mapping.update({
+sass_functions.update({
     'alpha:1': _alpha,
     'opacity:1': _alpha,
     'opacify:2': _opacify,
@@ -452,38 +452,38 @@ func_mapping.update({
     'fade-out:2': _transparentize,
 })
 
-func_mapping.update({
+sass_functions.update({
     'adjust-color:n': _adjust_color,
     'scale-color:n': _scale_color,
     'change-color:n': _change_color,
 })
 
-func_mapping.update({
+sass_functions.update({
     'unquote:n': _unquote,
     'quote:n': _quote,
 })
 
-func_mapping.update({
+sass_functions.update({
     'percentage:1': _percentage,
     'round:1': Value._wrap(round),
     'ceil:1': Value._wrap(math.ceil),
     'floor:1': Value._wrap(math.floor),
 })
 
-func_mapping.update({
+sass_functions.update({
     'length:n': _length,
     'nth:2': _nth,
     'join:2': _join,
     'join:3': _join,
 })
 
-func_mapping.update({
+sass_functions.update({
     'type-of:1': _type_of,
     'unit:1': _unit,
     'unitless:1': _unitless,
     'comparable:2': _comparable,
 })
 
-func_mapping.update({
+sass_functions.update({
     'if:3': _if,
 })

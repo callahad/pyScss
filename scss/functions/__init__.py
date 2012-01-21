@@ -41,9 +41,9 @@ from ..support import (__compass_list, __compass_slice, __compass_space_list,
                        _reject)
 from ..units import _units, _units_weights
 from ..utils import escape, split_params, to_float, to_str
-from .sass import (_color_type, __hsl_op, _opacify, _transparentize,
-                   _grayscale, _adjust_hue, _rgba2, _nth, _length, _unquote,
-                   _if, func_mapping)
+from .sass import (_color_type, __hsl_op, _adjust_hue, _rgba2, _nth, _length,
+                   _unquote, _if, sass_functions)
+from .sass_extensions import typos
 
 
 ################################################################################
@@ -1227,9 +1227,6 @@ fnct = {
     'radial-svg-gradient:n': _radial_svg_gradient,
     'linear-svg-gradient:n': _linear_svg_gradient,
 
-    'fadein:2': _opacify, #spelling
-    'fadeout:2': _transparentize, #spelling
-    'greyscale:1': _grayscale, #spelling
 
     'adjust-lightness:2': _adjust_lightness,
     'adjust-saturation:2': _adjust_saturation,
@@ -1297,4 +1294,5 @@ fnct = {
 for u in _units:
     fnct[u + ':2'] = _convert_to
 
-fnct.update(func_mapping)
+fnct.update(sass_functions)
+fnct.update(typos)
