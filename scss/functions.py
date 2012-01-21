@@ -30,7 +30,7 @@ import operator
 import random
 import time
 
-from .config import ASSETS_ROOT, ASSETS_URL, STATIC_ROOT, STATIC_URL, log
+from .config import ASSETS_URL, STATIC_URL, _cfg, log
 from .data_types import (Value, NumberValue, ListValue, ColorValue,
                          QuotedStringValue, StringValue)
 from .support import (__compass_list, __compass_slice, __compass_space_list,
@@ -696,13 +696,13 @@ def _sprite_map(g, **kwargs):
             spacing = [int(NumberValue(spacing).value)]
         spacing = (spacing * 4)[:4]
 
-        if callable(STATIC_ROOT):
-            rfiles = files = sorted(STATIC_ROOT(g))
+        if callable(_cfg['STATIC_ROOT']):
+            rfiles = files = sorted(_cfg['STATIC_ROOT'](g))
         else:
-            glob_path = os.path.join(STATIC_ROOT, g)
+            glob_path = os.path.join(_cfg['STATIC_ROOT'], g)
             files = glob.glob(glob_path)
             files = sorted((f, None) for f in files)
-            rfiles = [(f[len(STATIC_ROOT):], s) for f, s in files]
+            rfiles = [(f[len(_cfg['STATIC_ROOT']):], s) for f, s in files]
 
         if not files:
             log.error("Nothing found at '%s'", glob_path)
@@ -720,7 +720,7 @@ def _sprite_map(g, **kwargs):
         key = list(zip(*files)[0]) + times + [repr(kwargs)]
         key = map_name + '-' + base64.urlsafe_b64encode(hashlib.md5(repr(key)).digest()).rstrip('=').replace('-', '_')
         asset_file = key + '.png'
-        asset_path = os.path.join(ASSETS_ROOT, asset_file)
+        asset_path = os.path.join(_cfg['ASSETS_ROOT'], asset_file)
 
         if os.path.exists(asset_path + '.cache'):
             asset, map, sizes = pickle.load(open(asset_path + '.cache'))
@@ -890,7 +890,7 @@ def _grid_image(left_gutter, width, right_gutter, height, columns=1, grid_color=
         key = (columns, grid_color, baseline_color, background_color)
         key = grid_name + '-' + base64.urlsafe_b64encode(hashlib.md5(repr(key)).digest()).rstrip('=').replace('-', '_')
         asset_file = key + '.png'
-        asset_path = os.path.join(ASSETS_ROOT, asset_file)
+        asset_path = os.path.join(_cfg['ASSETS_ROOT'], asset_file)
         try:
             new_image.save(asset_path)
         except IOError:
@@ -1084,7 +1084,7 @@ def _background_noise(intensity=None, opacity=None, size=None, monochrome=False,
         asset_file = 'noise_%s%sx%s+%s+%s' % ('mono_' if monochrome else '', size, size, to_str(intensity).replace('.', '_'), to_str(opacity).replace('.', '_'))
         asset_file = asset_file + '-' + base64.urlsafe_b64encode(hashlib.md5(repr(key)).digest()).rstrip('=').replace('-', '_')
         asset_file = asset_file + '.png'
-        asset_path = os.path.join(ASSETS_ROOT, asset_file)
+        asset_path = os.path.join(_cfg['ASSETS_ROOT'], asset_file)
         try:
             new_image.save(asset_path)
         except IOError:
@@ -1109,15 +1109,15 @@ def _stylesheet_url(path, only_path=False, cache_buster=True):
     be returned instead of a `url()` function
     """
     filepath = StringValue(path).value
-    if callable(STATIC_ROOT):
+    if callable(_cfg['STATIC_ROOT']):
         try:
-            _file, _storage = list(STATIC_ROOT(filepath))[0]
+            _file, _storage = list(_cfg['STATIC_ROOT'](filepath))[0]
             d_obj = _storage.modified_time(_file)
             filetime = int(time.mktime(d_obj.timetuple()))
         except:
             filetime = 'NA'
     else:
-        _path = os.path.join(STATIC_ROOT, filepath)
+        _path = os.path.join(_cfg['STATIC_ROOT'], filepath)
         if os.path.exists(_path):
             filetime = int(os.path.getmtime(_path))
         else:
@@ -1135,9 +1135,9 @@ def _stylesheet_url(path, only_path=False, cache_buster=True):
 def __font_url(path, only_path=False, cache_buster=True, inline=False):
     filepath = StringValue(path).value
     path = None
-    if callable(STATIC_ROOT):
+    if callable(_cfg['STATIC_ROOT']):
         try:
-            _file, _storage = list(STATIC_ROOT(filepath))[0]
+            _file, _storage = list(_cfg['STATIC_ROOT'](filepath))[0]
             d_obj = _storage.modified_time(_file)
             filetime = int(time.mktime(d_obj.timetuple()))
             if inline:
@@ -1145,7 +1145,7 @@ def __font_url(path, only_path=False, cache_buster=True, inline=False):
         except:
             filetime = 'NA'
     else:
-        _path = os.path.join(STATIC_ROOT, filepath)
+        _path = os.path.join(_cfg['STATIC_ROOT'], filepath)
         if os.path.exists(_path):
             filetime = int(os.path.getmtime(_path))
             if inline:
@@ -1227,9 +1227,9 @@ def __image_url(path, only_path=False, cache_buster=True, dst_color=None, src_co
     filepath = StringValue(path).value
     mime_type = inline and (StringValue(mime_type).value or mimetypes.guess_type(filepath)[0])
     path = None
-    if callable(STATIC_ROOT):
+    if callable(_cfg['STATIC_ROOT']):
         try:
-            _file, _storage = list(STATIC_ROOT(filepath))[0]
+            _file, _storage = list(_cfg['STATIC_ROOT'](filepath))[0]
             d_obj = _storage.modified_time(_file)
             filetime = int(time.mktime(d_obj.timetuple()))
             if inline or dst_color:
@@ -1237,7 +1237,7 @@ def __image_url(path, only_path=False, cache_buster=True, dst_color=None, src_co
         except:
             filetime = 'NA'
     else:
-        _path = os.path.join(STATIC_ROOT, filepath)
+        _path = os.path.join(_cfg['STATIC_ROOT'], filepath)
         if os.path.exists(_path):
             filetime = int(os.path.getmtime(_path))
             if inline or dst_color:
@@ -1253,7 +1253,7 @@ def __image_url(path, only_path=False, cache_buster=True, dst_color=None, src_co
         key = (filetime, src_color, dst_color)
         key = file_name + '-' + base64.urlsafe_b64encode(hashlib.md5(repr(key)).digest()).rstrip('=').replace('-', '_')
         asset_file = key + file_ext
-        asset_path = os.path.join(ASSETS_ROOT, asset_file)
+        asset_path = os.path.join(_cfg['ASSETS_ROOT'], asset_file)
 
         if os.path.exists(asset_path):
             filepath = asset_file
@@ -1338,14 +1338,14 @@ def _image_width(image):
         width = sprite_images[file][0]
     except KeyError:
         width = 0
-        if callable(STATIC_ROOT):
+        if callable(_cfg['STATIC_ROOT']):
             try:
-                _file, _storage = list(STATIC_ROOT(file))[0]
+                _file, _storage = list(_cfg['STATIC_ROOT'](file))[0]
                 path = _storage.open(_file)
             except:
                 pass
         else:
-            _path = os.path.join(STATIC_ROOT, file)
+            _path = os.path.join(_cfg['STATIC_ROOT'], file)
             if os.path.exists(_path):
                 path = open(_path, 'rb')
         if path:
@@ -1369,14 +1369,14 @@ def _image_height(image):
         height = sprite_images[file][1]
     except KeyError:
         height = 0
-        if callable(STATIC_ROOT):
+        if callable(_cfg['STATIC_ROOT']):
             try:
-                _file, _storage = list(STATIC_ROOT(file))[0]
+                _file, _storage = list(_cfg['STATIC_ROOT'](file))[0]
                 path = _storage.open(_file)
             except:
                 pass
         else:
-            _path = os.path.join(STATIC_ROOT, file)
+            _path = os.path.join(_cfg['STATIC_ROOT'], file)
             if os.path.exists(_path):
                 path = open(_path, 'rb')
         if path:

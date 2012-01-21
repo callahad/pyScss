@@ -7,7 +7,7 @@ import re
 import sys
 import time
 
-from .config import LOAD_PATHS, VERBOSITY, STATIC_ROOT, ASSETS_ROOT
+from .config import _cfg
 from .regexes import _prop_split_re
 from .scss import Scss
 from .scss_meta import BUILD_INFO
@@ -63,22 +63,21 @@ def run_cli():
     (options, args) = parser.parse_args()
 
     # General runtime configuration
-    global LOAD_PATHS, VERBOSITY, STATIC_ROOT, ASSETS_ROOT
-    VERBOSITY = 0
+    _cfg['VERBOSITY'] = 0
 
     if options.time:
-        VERBOSITY = 2
+        _cfg['VERBOSITY'] = 2
     if options.static_root is not None:
-        STATIC_ROOT = options.static_root
+        _cfg['STATIC_ROOT'] = options.static_root
     if options.assets_root is not None:
-        ASSETS_ROOT = options.assets_root
+        _cft['ASSETS_ROOT'] = options.assets_root
     if options.load_paths is not None:
         # TODO: Convert global LOAD_PATHS to a list. Use it directly.
         # Doing the above will break backwards compatibility!
-        if hasattr(LOAD_PATHS, 'split'):
-            load_path_list = [p.strip() for p in LOAD_PATHS.split(',')]
+        if hasattr(_cfg['LOAD_PATHS'], 'split'):
+            load_path_list = [p.strip() for p in _cfg['LOAD_PATHS'].split(',')]
         else:
-            load_path_list = list(LOAD_PATHS)
+            load_path_list = list(_cfg['LOAD_PATHS'])
 
         for path_param in options.load_paths:
             for p in path_param.replace(os.pathsep, ',').replace(';', ',').split(','):
@@ -87,10 +86,10 @@ def run_cli():
                     load_path_list.append(p)
 
         # TODO: Remove this once global LOAD_PATHS is a list.
-        if hasattr(LOAD_PATHS, 'split'):
-            LOAD_PATHS = ','.join(load_path_list)
+        if hasattr(_cfg['LOAD_PATHS'], 'split'):
+            _cfg['LOAD_PATHS'] = ','.join(load_path_list)
         else:
-            LOAD_PATHS = load_path_list
+            _cfg['LOAD_PATHS'] = load_path_list
 
     # Execution modes
     if options.test:
@@ -112,7 +111,7 @@ def run_cli():
         except ImportError:
             pass
 
-        css = Scss(load_paths=LOAD_PATHS)
+        css = Scss()
         context = css.scss_vars
         options = css.scss_opts
         rule = spawn_rule(context=context, options=options)
@@ -235,8 +234,7 @@ def run_cli():
             def __init__(self, *args, **kwargs):
                 super(ScssEventHandler, self).__init__(*args, **kwargs)
                 self.css = Scss(scss_opts={'compress': options.compress,
-                                           'debug_info': options.debug_info},
-                                load_paths=LOAD_PATHS)
+                                           'debug_info': options.debug_info})
                 self.output = options.output
                 self.suffix = options.suffix
 
@@ -303,8 +301,7 @@ def run_cli():
             output = sys.stdout
 
         css = Scss(scss_opts={'compress': options.compress,
-                              'debug_info': options.debug_info},
-                   load_paths=LOAD_PATHS)
+                              'debug_info': options.debug_info})
         if args:
             for path in args:
                 finput = open(path, 'rt')

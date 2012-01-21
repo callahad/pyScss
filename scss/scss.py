@@ -7,9 +7,8 @@ import re
 import textwrap
 
 from .colors import _colors, _short_color_re, _reverse_colors
-from .config import (LOAD_PATHS, STATIC_ROOT, _default_scss_files,
-                     _default_scss_index, _default_scss_opts,
-                     _default_scss_vars, log)
+from .config import (_cfg, _default_scss_files, _default_scss_index,
+                     _default_scss_opts, _default_scss_vars, log)
 from .data_types import BooleanValue, NumberValue, ListValue, StringValue
 from .functions import _sprite_map
 from .grammar import CalculatorScanner, eval_expr, interpolate
@@ -32,12 +31,10 @@ class Scss(object):
     # configuration:
     construct = 'self'
 
-    def __init__(self, scss_vars=None, scss_opts=None, scss_files=None,
-                 load_paths=None):
+    def __init__(self, scss_vars=None, scss_opts=None, scss_files=None):
         self._scss_vars = scss_vars
         self._scss_opts = scss_opts
         self._scss_files = scss_files
-        self._load_paths = load_paths if load_paths is not None else LOAD_PATHS
         self.reset()
 
     def clean(self):
@@ -551,10 +548,10 @@ class Scss(object):
 
                         # TODO: Convert global LOAD_PATHS to a list. Use it directly.
                         # Doing the above will break backwards compatibility!
-                        if hasattr(self._load_paths, 'split'):
-                            load_path_list = self._load_paths.split(',') # Old style
+                        if hasattr(_cfg['LOAD_PATHS'], 'split'):
+                            load_path_list = _cfg['LOAD_PATHS'].split(',') # Old style
                         else:
-                            load_path_list = self._load_paths # New style
+                            load_path_list = _cfg['LOAD_PATHS'] # New style
 
                         for path in [ './' ] + load_path_list:
                             for basepath in [ './', os.path.dirname(rule[PATH]) ]:
@@ -610,12 +607,12 @@ class Scss(object):
         Implements @import for sprite-maps
         Imports magic sprite map directories
         """
-        if callable(STATIC_ROOT):
-            files = sorted(STATIC_ROOT(name))
+        if callable(_cfg['STATIC_ROOT']):
+            files = sorted(_cfg['STATIC_ROOT'](name))
         else:
-            glob_path = os.path.join(STATIC_ROOT, name)
+            glob_path = os.path.join(_cfg['STATIC_ROOT'], name)
             files = glob.glob(glob_path)
-            files = sorted((file[len(STATIC_ROOT):], None) for file in files)
+            files = sorted((file[len(_cfg['STATIC_ROOT']):], None) for file in files)
 
         if files:
             # Build magic context

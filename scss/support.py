@@ -4,7 +4,7 @@ import math
 import re
 import time
 
-from .config import VERBOSITY
+from .config import _cfg
 from .data_types import (BooleanValue, NumberValue, ListValue, ColorValue,
                          QuotedStringValue, StringValue)
 from .regexes import _variable_re
@@ -64,9 +64,9 @@ def spawn_rule(rule=None, **kwargs):
 
 def print_timing(level=0):
     def _print_timing(func):
-        if VERBOSITY:
+        if _cfg['VERBOSITY']:
             def wrapper(*arg):
-                if VERBOSITY >= level:
+                if _cfg['VERBOSITY'] >= level:
                     t1 = time.time()
                     res = func(*arg)
                     t2 = time.time()

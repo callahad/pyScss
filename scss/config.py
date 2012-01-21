@@ -7,23 +7,21 @@ from .scss_meta import (BUILD_INFO, PROJECT, VERSION, REVISION, URL, AUTHOR,
                         AUTHOR_EMAIL, LICENSE)
 
 
+# Variables read by submodules, but never modified.
+DEBUG = 0
 PROJECT_ROOT = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
-# Sass @import load_paths:
-LOAD_PATHS = os.path.join(PROJECT_ROOT, 'sass/frameworks/')
-# Assets path, where new sprite files are created:
-STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static/')
-# Assets path, where new sprite files are created:
-ASSETS_ROOT = os.path.join(PROJECT_ROOT, 'static/assets/')
-# Urls for the static and assets:
 STATIC_URL = '/static/'
 ASSETS_URL = '/static/assets/'
-VERBOSITY = 1
-DEBUG = 0
+
+# Variables modified by the .cli submodule.
+_cfg = {'LOAD_PATHS': os.path.join(PROJECT_ROOT, 'sass/frameworks/'),
+        'STATIC_ROOT': os.path.join(PROJECT_ROOT, 'static/'),
+        'ASSETS_ROOT': os.path.join(PROJECT_ROOT, 'static/assets/'),
+        'VERBOSITY': 1}
 
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
 
 _default_scss_files = {}  # Files to be compiled ({file: content, ...})
 
@@ -54,7 +52,7 @@ _default_scss_vars = {
 }
 
 _default_scss_opts = {
-    'verbosity': VERBOSITY,
+    'verbosity': _cfg['VERBOSITY'],
     'compress': 1,
     'compress_short_colors': 1,  # Converts things like #RRGGBB to #RGB
     'compress_reverse_colors': 1,  # Gets the shortest name of all for colors
