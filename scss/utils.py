@@ -55,3 +55,23 @@ def depar(s):
     while s and s[0] == '(' and s[-1] == ')':
         s = s[1:-1]
     return s
+
+
+def split_params(params):
+    params = params.split(',') or []
+    if params:
+        final_params = []
+        param = params.pop(0)
+        try:
+            while True:
+                while param.count('(') != param.count(')'):
+                    try:
+                        param = param + ',' + params.pop(0)
+                    except IndexError:
+                        break
+                final_params.append(param)
+                param = params.pop(0)
+        except IndexError:
+            pass
+        params = final_params
+    return params
