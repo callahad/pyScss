@@ -227,6 +227,8 @@ class NumberValue(Value):
                 type = None
         elif isinstance(tokens, (StringValue, basestring)):
             tokens = getattr(tokens, 'value', tokens)
+            if tokens.startswith('$'):
+                raise ValueError("Value is not a Number! (%s)" % tokens)
             try:
                 if tokens and tokens[-1] == '%':
                     self.value = to_float(tokens[:-1]) / 100.0
@@ -401,7 +403,10 @@ class ListValue(Value):
         elif isinstance(tokens, (list, tuple)):
             self.value = dict(enumerate(tokens))
         else:
-            lst = [i for i in to_str(tokens).split() if i]
+            if isinstance(tokens, StringValue):
+                tokens = tokens.value
+            tokens = to_str(tokens)
+            lst = [i for i in tokens.split() if i]
             if len(lst) == 1:
                 lst = [i.strip() for i in lst[0].split(',') if i.strip()]
                 if len(lst) > 1:
@@ -473,17 +478,19 @@ class ListValue(Value):
         return sorted((k, v) for k, v in self.value.items() if k != '_')
 
     def first(self):
-        try:
-            return self.items()[0][1]
-        except IndexError:
-            return None
+        for v in self.values():
+            if isinstance(v, basestring) and (v == 'undefined' or v.startswith('$')):
+                continue
+            if bool(v):
+                return v
+        return v
 
 
 class ColorValue(Value):
     def __init__(self, tokens):
         self.tokens = tokens
-        self.types = {}
         self.value = (0, 0, 0, 1)
+        self.types = {}
         if tokens is None:
             self.value = (0, 0, 0, 1)
         elif isinstance(tokens, ParserValue):
@@ -508,17 +515,21 @@ class ColorValue(Value):
             val = float(tokens)
             self.value = (val, val, val, 1)
         else:
-            hex = to_str(tokens)
+            if isinstance(tokens, StringValue):
+                tokens = tokens.value
+            tokens = to_str(tokens)
+            tokens.replace(' ', '').lower()
+            if tokens.startswith('$'):
+                raise ValueError("Value is not a Color! (%s)" % tokens)
             try:
-                self.value = hex2rgba[len(hex)](hex)
+                self.value = hex2rgba[len(tokens)](tokens)
             except:
                 try:
-                    val = to_float(hex)
-                    self.values = (val, val, val, 1)
+                    val = to_float(tokens)
+                    self.value = (val, val, val, 1)
                 except ValueError:
                     try:
-                        hex.replace(' ', '').lower()
-                        type, _, colors = hex.partition('(')
+                        type, _, colors = tokens.partition('(')
                         colors = colors.rstrip(')')
                         if type in ('rgb', 'rgba'):
                             c = tuple(colors.split(','))
@@ -529,7 +540,7 @@ class ColorValue(Value):
                                 self.value = tuple(col)
                                 self.types = {type: 1}
                             except:
-                                raise ValueError("Value is not a Color!")
+                                raise ValueError("Value is not a Color! (%s)" % tokens)
                         elif type in ('hsl', 'hsla'):
                             c = colors.split(',')
                             try:
@@ -539,9 +550,11 @@ class ColorValue(Value):
                                 self.value = tuple([c * 255.0 for c in colorsys.hls_to_rgb(col[0], 0.999999 if col[2] == 1 else col[2], 0.999999 if col[1] == 1 else col[1])] + [col[3]])
                                 self.types = {type: 1}
                             except:
-                                raise ValueError("Value is not a Color!")
+                                raise ValueError("Value is not a Color! (%s)" % tokens)
+                        else:
+                            raise ValueError("Value is not a Color! (%s)" % tokens)
                     except:
-                        raise ValueError("Value is not a Color!")
+                        raise ValueError("Value is not a Color! (%s)" % tokens)
 
     def __repr__(self):
         return '<%s: %s, %s>' % (self.__class__.__name__, repr(self.value), repr(self.types))

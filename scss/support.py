@@ -78,6 +78,36 @@ def print_timing(level=0):
     return _print_timing
 
 
+# Profiler decorator
+# import pstats
+# import cProfile
+# def profile(fn):
+#     def wrapper(*args, **kwargs):
+#         profiler = cProfile.Profile()
+#         stream = StringIO()
+#         profiler.enable()
+#         try:
+#             res = fn(*args, **kwargs)
+#         finally:
+#             profiler.disable()
+#             stats = pstats.Stats(profiler, stream=stream)
+#             stats.sort_stats('time')
+#             print >>stream, ""
+#             print >>stream, "=" * 100
+#             print >>stream, "Stats:"
+#             stats.print_stats()
+#             print >>stream, "=" * 100
+#             print >>stream, "Callers:"
+#             stats.print_callers()
+#             print >>stream, "=" * 100
+#             print >>stream, "Callees:"
+#             stats.print_callees()
+#             print >>sys.stderr, stream.getvalue()
+#             stream.close()
+#         return res
+#     return wrapper
+
+
 ################################################################################
 
 _safe_strings = {
@@ -270,14 +300,14 @@ def _compact(*args):
             args = args.value
         if isinstance(args, dict):
             for i, item in args.items():
-                if bool(item):
+                if False if isinstance(item, basestring) and (item == 'undefined' or item.startswith('$')) else bool(item):
                     ret[i] = item
-        elif bool(args):
+        elif False if isinstance(args, basestring) and (args == 'undefined' or args.startswith('$')) else bool(args):
             ret[0] = args
     else:
         ret['_'] = ','
         for i, item in enumerate(args):
-            if bool(item):
+            if False if isinstance(item, basestring) and (item == 'undefined' or item.startswith('$')) else bool(item):
                 ret[i] = item
     if isinstance(args, ListValue):
         args = args.value
@@ -323,7 +353,7 @@ def __compass_slice(lst, start_index, end_index=None):
 
 def _first_value_of(*lst):
     if len(lst) == 1 and isinstance(lst[0], (list, tuple, ListValue)):
-        lst = ListValue(lst[0]).values()
+        lst = ListValue(lst[0])
     ret = ListValue(lst).first()
     return ret.__class__(ret)
 

@@ -6,9 +6,9 @@ except ImportError:
     import pickle
 
 try:
-    import cStringIO as StringIO
+    from cStringIO import StringIO
 except:
-    import StringIO
+    from StringIO import StringIO
 
 try:
     from PIL import Image, ImageDraw
@@ -627,7 +627,7 @@ def _grid_image(left_gutter, width, right_gutter, height, columns=1, grid_color=
             inline = True  # Retry inline version
         url = '%s%s' % (ASSETS_URL, asset_file)
     if inline:
-        output = StringIO.StringIO()
+        output = StringIO()
         new_image.save(output, format='PNG')
         contents = output.getvalue()
         output.close()
@@ -649,7 +649,7 @@ def _image_color(color, width=1, height=1):
         size=(w, h),
         color=(c[0], c[1], c[2], int(c[3] * 255.0))
     )
-    output = StringIO.StringIO()
+    output = StringIO()
     new_image.save(output, format='PNG')
     contents = output.getvalue()
     output.close()
@@ -821,7 +821,7 @@ def _background_noise(intensity=None, opacity=None, size=None, monochrome=False,
             inline = True  # Retry inline version
         url = '%s%s' % (ASSETS_URL, asset_file)
     if inline:
-        output = StringIO.StringIO()
+        output = StringIO()
         new_image.save(output, format='PNG')
         contents = output.getvalue()
         output.close()
@@ -1019,7 +1019,7 @@ def __image_url(path, only_path=False, cache_buster=True, dst_color=None, src_co
                 if cache_buster:
                     url += '?_=%s' % filetime
             if inline:
-                output = StringIO.StringIO()
+                output = StringIO()
                 image.save(output, format='PNG')
                 contents = output.getvalue()
                 output.close()

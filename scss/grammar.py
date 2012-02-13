@@ -6,7 +6,7 @@ from .config import _cfg, log
 from .data_types import ParserValue, BooleanValue, NumberValue, ListValue, ColorValue, QuotedStringValue, StringValue
 from .functions import fnct
 from .parser import CachedScanner, Parser
-from .regexes import _css_function_re
+from .regexes import _css_functions_re
 from .support import CONTEXT, OPTIONS, INDEX, LINENO
 from .units import _units
 from .utils import to_str
@@ -52,7 +52,7 @@ def call(name, args, R, is_function=True):
     except KeyError:
         sp = args and args.value.get('_') or ''
         if is_function:
-            if not _css_function_re.match(_name):
+            if not _css_functions_re.match(_name):
                 log.error("Required function not found: %s (%s)", _fn_a, R[INDEX][R[LINENO]])
             _args = (sp + ' ').join(to_str(v) for n, v in s if isinstance(n, int))
             _kwargs = (sp + ' ').join('%s: %s' % (n, to_str(v)) for n, v in s if not isinstance(n, int) and n != '_')
@@ -65,27 +65,49 @@ def call(name, args, R, is_function=True):
     return node
 
 
+expr_cache = {}
 def eval_expr(expr, rule, raw=False):
     # print >>sys.stderr, '>>',expr,'<<'
-    val = None
-    try:
-        P = Calculator(CalculatorScanner())
-        P.reset(expr)
-        results = P.goal(rule)
-        if raw:
-            #print >>sys.stderr, '%%',repr(results),'%%'
-            return results
-        if results is not None:
-            val = to_str(results)
-            #print >>sys.stderr, '==',val,'=='
-            return val
-    except SyntaxError:
-        if _cfg['DEBUG']:
-            raise
-    except Exception as e:
-        log.error("Exception raised: %s in `%s' (%s)", e, expr, rule[INDEX][rule[LINENO]])
-        if _cfg['DEBUG']:
-            raise
+    results = None
+
+    if not isinstance(expr, basestring):
+        results = expr
+
+    if results is None:
+        if expr in rule[CONTEXT]:
+            chkd = {}
+            while expr in rule[CONTEXT] and expr not in chkd:
+                chkd[expr] = 1
+                _expr = rule[CONTEXT][expr]
+                if _expr == expr:
+                    break
+                expr = _expr
+        if not isinstance(expr, basestring):
+            results = expr
+
+    if results is None:
+        try:
+            results = expr_cache[expr]
+        except KeyError:
+            try:
+                P = Calculator(CalculatorScanner())
+                P.reset(expr)
+                results = P.goal(rule)
+            except SyntaxError:
+                if _cfg['DEBUG']:
+                    raise
+            except Exception, e:
+                log.error("Exception raised: %s in `%s' (%s)", e, expr, rule[INDEX][rule[LINENO]])
+                if _cfg['DEBUG']:
+                    raise
+            if '$' not in expr:
+                expr_cache[expr] = results
+
+    if not raw and results is not None:
+        results = to_str(results)
+
+    # print >>sys.stderr, repr(expr),'==',results,'=='
+    return results
 
 
 ## Grammar compiled using Yapps:

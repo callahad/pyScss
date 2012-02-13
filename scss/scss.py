@@ -17,8 +17,8 @@ from .regexes import (SEPARATOR, _collapse_properties_space_re, _colors_re,
                       _expand_rules_space_re, _interpolate_re, _ml_comment_re,
                       _nl_num_nl_re, _nl_re, _prop_split_re, _sl_comment_re,
                       _spaces_re, _strings_re, _variable_re, _escape_chars_re,
-                      _skip_word_re, _skip_re, _expr_glob_re,
-                      _reverse_colors_re, _zero_units_re, _zero_re)
+                      _skip_word_re, _expr_glob_re, _reverse_colors_re,
+                      _zero_units_re, _zero_re)
 from .support import (SELECTORS, MEDIA, POSITION, CODESTR, OPTIONS, CONTEXT,
                       PROPERTIES, INDEX, LINENO, PATH, DEPS, FILEID,
                       print_timing, spawn_rule, _reverse_safe_strings,
@@ -73,14 +73,16 @@ class Scss(object):
         self._scss_index = _default_scss_index.copy()
 
         self._contexts = {}
-        self._replaces = {}
 
         self.clean()
 
+    #@profile
     @print_timing(2)
-    def Compilation(self, input_scss=None):
-        if input_scss is not None:
-            self._scss_files = {'<string>': input_scss}
+    def Compilation(self, scss_string=None, scss_file=None):
+        if scss_string is not None:
+            self._scss_files = {'<string>': scss_string}
+        elif scss_file is not None:
+            self._scss_files = {scss_file: open(scss_file).read()}
 
         self.reset()
 
@@ -336,6 +338,10 @@ class Scss(object):
                 elif code == '@raw':
                     name = self.calculate(name, rule[CONTEXT], rule[OPTIONS], rule)
                     log.info(repr(name))
+                elif code == '@dump_context':
+                    log.info(repr(rule[CONTEXT]))
+                elif code == '@dump_options':
+                    log.info(repr(rule[OPTIONS]))
                 elif code == '@debug':
                     name = name.strip()
                     if name.lower() in ('1', 'true', 't', 'yes', 'y', 'on'):
@@ -538,7 +544,6 @@ class Scss(object):
                     unsupported = []
                     load_paths = []
                     try:
-                        raise KeyError
                         i_codestr = self.scss_files[name]
                     except KeyError:
                         filename = os.path.basename(name)
@@ -548,12 +553,12 @@ class Scss(object):
                         # TODO: Convert global LOAD_PATHS to a list. Use it directly.
                         # Doing the above will break backwards compatibility!
                         if hasattr(_cfg['LOAD_PATHS'], 'split'):
-                            load_path_list = _cfg['LOAD_PATHS'].split(',') # Old style
+                            load_path_list = _cfg['LOAD_PATHS'].split(',')  # Old style
                         else:
-                            load_path_list = _cfg['LOAD_PATHS'] # New style
+                            load_path_list = _cfg['LOAD_PATHS']  # New style
 
-                        for path in [ './' ] + load_path_list:
-                            for basepath in [ './', os.path.dirname(rule[PATH]) ]:
+                        for path in ['./'] + load_path_list:
+                            for basepath in ['./', os.path.dirname(rule[PATH])]:
                                 i_codestr = None
                                 full_path = os.path.realpath(os.path.join(path, basepath, dirname))
                                 if full_path not in load_paths:
@@ -714,10 +719,10 @@ class Scss(object):
         """
         Implements @for
         """
-        var, _, name = name.partition('from')
-        frm, _, through = name.partition('through')
+        var, _, name = name.partition(' from ')
+        frm, _, through = name.partition(' through ')
         if not through:
-            frm, _, through = frm.partition('to')
+            frm, _, through = frm.partition(' to ')
         frm = self.calculate(frm, rule[CONTEXT], rule[OPTIONS], rule)
         through = self.calculate(through, rule[CONTEXT], rule[OPTIONS], rule)
         try:
@@ -744,7 +749,7 @@ class Scss(object):
         """
         Implements @each
         """
-        var, _, name = name.partition('in')
+        var, _, name = name.partition(' in ')
         name = self.calculate(name, rule[CONTEXT], rule[OPTIONS], rule)
         if name:
             name = ListValue(name)
@@ -1161,47 +1166,31 @@ class Scss(object):
         return result
 
     def calculate(self, _base_str, context, options, rule):
-        try:
-            better_expr_str = self._replaces[_base_str]
-        except KeyError:
-            better_expr_str = _base_str
+        better_expr_str = _base_str
 
-            if _skip_word_re.match(better_expr_str) and '- ' not in better_expr_str and ' and ' not in better_expr_str and ' or ' not in better_expr_str and 'not ' not in better_expr_str:
-                    self._replaces[_base_str] = better_expr_str
-                    return better_expr_str
+        if _skip_word_re.match(better_expr_str) and '- ' not in better_expr_str and ' and ' not in better_expr_str and ' or ' not in better_expr_str and 'not ' not in better_expr_str:
+            return better_expr_str
 
-            better_expr_str = self.do_glob_math(better_expr_str, context, options, rule)
+        better_expr_str = self.do_glob_math(better_expr_str, context, options, rule)
 
-            better_expr_str = eval_expr(better_expr_str, rule, True)
-            if better_expr_str is None:
-                better_expr_str = self.apply_vars(_base_str, context, options, rule)
+        better_expr_str = eval_expr(better_expr_str, rule, True)
+        if better_expr_str is None:
+            better_expr_str = self.apply_vars(_base_str, context, options, rule)
 
-            if '$' not in _base_str:
-                self._replaces[_base_str] = better_expr_str
         return better_expr_str
 
     def _calculate_expr(self, context, options, rule, _dequote):
         def __calculate_expr(result):
             _group0 = result.group(1)
             _base_str = _group0
-            try:
-                better_expr_str = self._replaces[_group0]
-            except KeyError:
+            better_expr_str = eval_expr(_base_str, rule)
+
+            if better_expr_str is None:
                 better_expr_str = _base_str
-
-                if _skip_re.match(better_expr_str) and '- ' not in better_expr_str:
-                    self._replaces[_group0] = better_expr_str
-                    return better_expr_str
-
-                better_expr_str = eval_expr(better_expr_str, rule)
-
-                if better_expr_str is None:
-                    better_expr_str = _base_str
-                elif _dequote:
-                    better_expr_str = dequote(better_expr_str)
-
-                if '$' not in _group0:
-                    self._replaces[_group0] = better_expr_str
+            elif _dequote:
+                better_expr_str = dequote(str(better_expr_str))
+            else:
+                better_expr_str = str(better_expr_str)
 
             return better_expr_str
         return __calculate_expr
