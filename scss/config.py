@@ -12,7 +12,7 @@ PROJECT_ROOT = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 STATIC_URL = '/static/'
 ASSETS_URL = '/static/assets/'
 
-# Variables modified by the .cli or .scss submodules.
+# Variables modified by the .tool or .scss submodules.
 _cfg = {'LOAD_PATHS': os.path.join(PROJECT_ROOT, 'sass/frameworks/'),
         'STATIC_ROOT': os.path.join(PROJECT_ROOT, 'static/'),
         'ASSETS_ROOT': os.path.join(PROJECT_ROOT, 'static/assets/'),

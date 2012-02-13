@@ -1,24 +1,24 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
 
+from collections import deque
 import logging
 import os
 import re
 import sys
-from collections import deque
+import time
 
-from . import Scss, VERBOSITY, PROJECT_ROOT, LOAD_PATHS, STATIC_ROOT, ASSETS_ROOT, STATIC_URL, ASSETS_URL, log
-from . import spawn_rule, to_str, profiling
-from . import _prop_split_re
+from .config import _cfg
+from .regexes import _prop_split_re
+from .scss import Scss
 from .scss_meta import BUILD_INFO
-
-log.setLevel(logging.INFO)
+from .support import spawn_rule, profiling
+from .utils import to_str
 
 
 def main():
-    logging.basicConfig(format="%(levelname)s: %(message)s")
-
     from optparse import OptionGroup, OptionParser, SUPPRESS_HELP
+
+    logging.basicConfig(format="%(levelname)s: %(message)s")
 
     parser = OptionParser(usage="Usage: %prog [options] [file]",
                           description="Converts Scss files to CSS.",
@@ -63,22 +63,21 @@ def main():
     (options, args) = parser.parse_args()
 
     # General runtime configuration
-    global LOAD_PATHS, VERBOSITY, STATIC_ROOT, ASSETS_ROOT
-    VERBOSITY = 0
+    _cfg['VERBOSITY'] = 0
 
     if options.time:
-        VERBOSITY = 2
+        _cfg['VERBOSITY'] = 2
     if options.static_root is not None:
-        STATIC_ROOT = options.static_root
+        _cfg['STATIC_ROOT'] = options.static_root
     if options.assets_root is not None:
-        ASSETS_ROOT = options.assets_root
+        _cfg['ASSETS_ROOT'] = options.assets_root
     if options.load_paths is not None:
         # TODO: Convert global LOAD_PATHS to a list. Use it directly.
         # Doing the above will break backwards compatibility!
-        if hasattr(LOAD_PATHS, 'split'):
-            load_path_list = [p.strip() for p in LOAD_PATHS.split(',')]
+        if hasattr(_cfg['LOAD_PATHS'], 'split'):
+            load_path_list = [p.strip() for p in _cfg['LOAD_PATHS'].split(',')]
         else:
-            load_path_list = list(LOAD_PATHS)
+            load_path_list = list(_cfg['LOAD_PATHS'])
 
         for path_param in options.load_paths:
             for p in path_param.replace(os.pathsep, ',').replace(';', ',').split(','):
@@ -87,10 +86,10 @@ def main():
                     load_path_list.append(p)
 
         # TODO: Remove this once global LOAD_PATHS is a list.
-        if hasattr(LOAD_PATHS, 'split'):
-            LOAD_PATHS = ','.join(load_path_list)
+        if hasattr(_cfg['LOAD_PATHS'], 'split'):
+            _cfg['LOAD_PATHS'] = ','.join(load_path_list)
         else:
-            LOAD_PATHS = load_path_list
+            _cfg['LOAD_PATHS'] = load_path_list
 
     # Execution modes
     if options.test:
@@ -221,7 +220,6 @@ def main():
                 print s
         print "Bye!"
     elif options.watch:
-        import time
         try:
             from watchdog.observers import Observer
             from watchdog.events import PatternMatchingEventHandler
@@ -235,10 +233,8 @@ def main():
         class ScssEventHandler(PatternMatchingEventHandler):
             def __init__(self, *args, **kwargs):
                 super(ScssEventHandler, self).__init__(*args, **kwargs)
-                self.css = Scss(scss_opts={
-                    'compress': options.compress,
-                    'debug_info': options.debug_info,
-                })
+                self.css = Scss(scss_opts={'compress': options.compress,
+                                           'debug_info': options.debug_info})
                 self.output = options.output
                 self.suffix = options.suffix
 
@@ -304,10 +300,8 @@ def main():
         else:
             output = sys.stdout
 
-        css = Scss(scss_opts={
-            'compress': options.compress,
-            'debug_info': options.debug_info,
-        })
+        css = Scss(scss_opts={'compress': options.compress,
+                              'debug_info': options.debug_info})
         if args:
             for path in args:
                 finput = open(path, 'rt')
